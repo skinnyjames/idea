@@ -1,6 +1,5 @@
 var Test = require('./src/test')
 
-
 module.exports = function(name, cb) {
   return function(resolve, output) {
 

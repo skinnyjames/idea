@@ -3,7 +3,6 @@ var EventEmitter = require('events').EventEmitter
 var inherits = require('inherits')
 inherits(Test, EventEmitter)
 
-
 function Test(name) {
   this.name = name
   this._assert = assert

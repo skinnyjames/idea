@@ -1,22 +1,26 @@
-const { measureMemory } = require('vm')
-var yargs = require('yargs')
+const process = require('process')
+var yargs = require('yargs')(process.argv.slice(2))
 var fork = require('child_process').fork
-
+var path = require('path')
 var options = yargs
+.usage('$0 -i number -p number -f string')
 .option('iterations', {
   alias: 'i',
   type: 'number',
-  description: 'Number of iterations'
+  description: 'Number of iterations',
+  required: true
 })
 .option('processes', {
   alias: 'p',
   type: 'number', 
-  description: 'Number of parallel processes'
+  description: 'Number of parallel processes',
+  required: true
 })
 .option('file', {
   alias: 'f',
   type: 'string',
-  description: 'file with test'
+  description: 'file with test',
+  required: true
 })
 .argv
 
@@ -24,7 +28,7 @@ var processes = options.processes || 1
 var iterations = options.iterations || 1
 var splitIterations = Math.ceil((iterations / processes))
 var forkPath = `${__dirname}/../fork.js`
-var test = `./test/export.js`
+var test = path.resolve(options.file)
 
 var parray = [...Array(processes).keys()].map(function(i) { return i + 1 })
 
@@ -43,3 +47,6 @@ var promises = parray.map(function(i) {
   })
 })
 Promise.all(promises)
+.then(function() {
+
+})
