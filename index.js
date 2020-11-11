@@ -1,11 +1,13 @@
 var Test = require('./src/test')
 
 module.exports = function(name, cb) {
-  return function(resolve, output) {
+  return async function(resolve, output, plugins) {
 
     var results = {
       expectations: []
     }
+
+    results = plugins.onSetup(results)
 
     var t = new Test(name)
 
@@ -14,11 +16,12 @@ module.exports = function(name, cb) {
     })
 
     t.on('end', function() {
+      results = plugins.onEnd(results)
       output(results)
       resolve()
     })
 
-    cb(t)
+    await cb(t)
 
   }
 }

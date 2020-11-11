@@ -8,27 +8,27 @@ var options = yargs
   alias: 'i',
   type: 'number',
   description: 'Number of iterations',
-  required: true
+  //required: true
 })
 .option('processes', {
   alias: 'p',
   type: 'number', 
   description: 'Number of parallel processes',
-  required: true
+  //required: true
 })
 .option('file', {
   alias: 'f',
   type: 'string',
   description: 'file with test',
-  required: true
+  //required: true
 })
 .argv
 
 var processes = options.processes || 1
-var iterations = options.iterations || 1
+var iterations = options.iterations || 3
 var splitIterations = Math.ceil((iterations / processes))
 var forkPath = `${__dirname}/../fork.js`
-var test = path.resolve(options.file)
+var test = './test/export' //path.resolve(options.file)
 
 var parray = [...Array(processes).keys()].map(function(i) { return i + 1 })
 
