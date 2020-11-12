@@ -1,47 +1,54 @@
-var collection = require('./src/fetch-intercept')()
-var uuid = require('uuid')
+var fetchIntercept = require('./src/fetch-intercept')
 
-function FetchInterceptPlugin() {
-}
 
-FetchInterceptPlugin.prototype.onInit = function onInit() {  
-    collection.init({
-        request: function(req) {
-            this.url = req[0]
-            this.startTime = new Date()
-            return req
-        },
-        response: function(response) {
-            this.endTime = new Date()
-            this.duration = (this.endTime - this.startTime)
-            response.timings = { url: this.url, duration: this.duration}
-            return response
-        }
-    })
-}
 
-FetchInterceptPlugin.prototype.onSetup = function onSetup(results) {
-    timings = []
-    id = uuid.v4()
-    collection.register(id)
 
-    collection.on('response', function(payload) {
-        if (payload.id === results.fetch.id) {
-            results.timings.push(payload.res.timings)
-        }
-    })
-    results.fetch = {
-        id,
-        collection
-    }
-    results.timings = timings
-    return results
-}
+// function FetchInterceptPlugin() {
+// }
 
-FetchInterceptPlugin.prototype.onEnd = function onEnd(results) {
-    collection.unsubscribe(results.fetch.id)
-    return results
-}
+// FetchInterceptPlugin.prototype.onInit = function onInit() {  
+//     collection.init({
+//         request: function(req) {
+//             this.url = req.url 
+//             this.startTime = new Date()
+//             return req
+//         },
+//         response: function(response) {
+//             this.endTime = new Date()
+//             this.duration = (this.endTime - this.startTime)
+//             response.timings = { url: this, duration: this.duration}
+//             return response
+//         }
+//     })
+// }
+
+// FetchInterceptPlugin.prototype.onSetup = function onSetup(results) {
+//     timings = []
+//     id = uuid.v4()
+//     collection.register(id)
+//     collection.on('response', responseEvent(results))
+//     results.fetch = {
+//         id,
+//     }
+//     results.timings = timings
+//     return results
+// }
+
+// FetchInterceptPlugin.prototype.onEnd = function onEnd(results) {
+//     collection.unsubscribe(results.fetch.id)
+//     const listenerFn = responseEvent(results)
+//     console.log(listenerFn)
+//     collection.removeListener('response', listenerFn)
+//     return results
+// }
+
+// function responseEvent(results) {
+//     return function responseEventFn(payload) {
+//         if (payload.id === results.fetch.id) {
+//             results.timings.push(payload.res.timings)
+//         }
+//     }
+// }
 
 
 function PluginsCollection() {
@@ -63,10 +70,10 @@ PluginsCollection.prototype.onInit = function onInit() {
 PluginsCollection.prototype.onSetup = function onSetup(results) {
     this.plugins.forEach(function(plugin) {
         if (plugin.onSetup) {
-            res = plugin.onSetup(results)
+            results = plugin.onSetup(results)
         }
     })
-    return res
+    return results
 }
 
 PluginsCollection.prototype.onResult = function onResult(res) {
@@ -90,7 +97,7 @@ PluginsCollection.prototype.onEnd = function onEnd(results) {
 
 
 const plugins = new PluginsCollection()
-const interceptPlugin = new FetchInterceptPlugin()
-plugins.register(interceptPlugin)
+// const interceptPlugin = new FetchInterceptPlugin()
+// plugins.register(interceptPlugin)
 
 module.exports = plugins

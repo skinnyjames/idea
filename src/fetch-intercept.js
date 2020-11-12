@@ -1,93 +1,65 @@
 const EventEmitter = require('events').EventEmitter
-const { ERANGE } = require('constants')
 const inherits = require('inherits')
 
-inherits(InterceptorCollection, EventEmitter)
 inherits(Interceptor, EventEmitter)
 
-
-
-function InterceptorCollection() {
-    this.interceptors = []
-}
-
-InterceptorCollection.prototype.unsubscribe = function unsubscribe(id) {
-    this.interceptors = this.interceptors.filter(function(i) {
-        return i.id !== id
-    })
-}
-
-InterceptorCollection.prototype.init = function(config) {
+function Interceptor(config) {
     this.config = config
 }
 
-InterceptorCollection.prototype.register = function register(id) {
-    const interceptor = new Interceptor(id, this.config, this.emit.bind(this))
-    this.interceptors.push(interceptor)
-    return interceptor
+Interceptor.prototype.register = function(config) {
+    this.config = config
+    this.store = {}
+    this.requests = {}
+    this.responses = {}
 }
 
-InterceptorCollection.prototype.requestHandler =  async function requestHandler(req) {
+Interceptor.prototype.requestHandler = function(id, ...req) {
+    var store = { start: new Date() } 
     if (this.config.request) {
-        req = this.config.request(req)
+        [req, store] = this.config.request(req, store)
+        this.emit(`request-${id}`, { id, request: req, store })
     }
-    this.interceptors.forEach(async function(interceptor) {
-        interceptor.emitter('request', { id: interceptor.id, req })
-    })
-    return req
+    return [req, store]
 }
 
-InterceptorCollection.prototype.responseHandler = async function responseHandler(res) {
+Interceptor.prototype.responseHandler = function(id, res, store) {
+    store.end = new Date()
+    store.duration = (store.end - store.start)
     if (this.config.response) {
-        res = this.config.response(res)
+        [res, store] = this.config.response(res, store) 
+        this.emit(`response-${id}`, { id, response: res, store })
+
     }
-    this.interceptors.forEach(async function(interceptor) {
-        interceptor.emitter('response', { id: interceptor.id, res })
-    })
-    return res
+    return [res, store]
 }
 
-
-
-function Interceptor(id, config, emitter) {
-    this.id = id
-    this.config = config
-    this.emitter = emitter
+Interceptor.prototype.unsubscribe = function(id) {
 }
 
-const collection = new InterceptorCollection()
-
-function register(uuid, config) {
-    const interceptor = collection.register(uuid, config)
-    return interceptor
-}
-
-function wrappedFetch(fetch) {
+function wrappedFetch(fetch, id) {
     return async function newFetch(...args) {
-        return execFetch(fetch, ...args)
+        return execFetch(fetch, id,  ...args)
     }
 }
 
-async function execFetch(fetch, ...args) {
+var interceptor = new Interceptor()
+
+async function execFetch(fetch, id, ...args) {
     req = await Promise.resolve(args)
-
-    req = await collection.requestHandler(req)
-
+    var [req, store] = interceptor.requestHandler(id, ...args)
     var res = await fetch(...req)
-
-    res  = await collection.responseHandler(res)
+    var [res, store] = interceptor.responseHandler(id, res, store)
 
     return res
 }
 
 
 module.exports = function() {
-    global.fetch ||= require('node-fetch')
-    if (!global.fetch) { 
-        throw new Error('fetch not found')
+    var fetch = require('node-fetch')
+
+    return {
+        getFetch: (id) => { return wrappedFetch(fetch, id) },
+        interceptor: interceptor
     }
-
-    global.fetch = wrappedFetch(global.fetch)
-
-    return collection
 }
